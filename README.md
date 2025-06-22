@@ -33,7 +33,6 @@ Unlike traditional databases, Convex's reactive nature is perfect for study abro
 **Real-time Data Synchronization**
 Convex excels in providing real-time updates crucial for study abroad platforms:
 - Instant notification when new matching universities are found
-- Live chat between students and counselors
 - Real-time application status tracking
 - Immediate updates when university requirements change
 
@@ -61,13 +60,16 @@ Enables future expansion to mobile apps for students, integration with universit
 ## Key Features Implemented
 
 - **Student Profile Management**: Comprehensive profiles with academic history, preferences, and goals
-- **University Matching Algorithm**: Real-time matching based on student criteria and university requirements
 - **Application Tracking**: Live status updates for all student applications across multiple universities
-- **Counselor-Student Communication**: Real-time messaging and video call scheduling
-- **Document Management**: Secure upload and verification of transcripts, test scores, and other documents
 - **Deadline Management**: Automatic notifications for application deadlines and required documents
 - **University Database**: Comprehensive, searchable database of international universities and programs
 - **Progress Analytics**: Visual dashboards showing application progress and success rates
+
+## Key Features which can be Implemented in the future
+
+- **University Matching Algorithm**: Real-time matching based on student criteria and university requirements
+- **Counselor-Student Communication**: Real-time messaging and video call scheduling
+- **Document Management**: Secure upload and verification of transcripts, test scores, and other documents
 
 ## Setup & Deployment Instructions
 
