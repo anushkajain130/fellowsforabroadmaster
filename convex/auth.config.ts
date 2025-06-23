@@ -6,3 +6,5 @@ export default {
     },
   ],
 };
+// auth.config.ts
+console.log("AUTH_RESEND_KEY at runtime:", process.env.AUTH_RESEND_KEY);
