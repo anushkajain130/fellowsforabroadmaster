@@ -17,6 +17,8 @@ import type * as ResendOTP from "../ResendOTP.js";
 import type * as applications from "../applications.js";
 import type * as auth from "../auth.js";
 import type * as blogs from "../blogs.js";
+import type * as chat from "../chat.js";
+import type * as cleanup from "../cleanup.js";
 import type * as comments from "../comments.js";
 import type * as http from "../http.js";
 import type * as programs from "../programs.js";
@@ -38,6 +40,8 @@ declare const fullApi: ApiFromModules<{
   applications: typeof applications;
   auth: typeof auth;
   blogs: typeof blogs;
+  chat: typeof chat;
+  cleanup: typeof cleanup;
   comments: typeof comments;
   http: typeof http;
   programs: typeof programs;
