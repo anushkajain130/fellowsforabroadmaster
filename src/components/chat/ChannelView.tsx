@@ -45,6 +45,29 @@ export function ChannelView({ channelId }: { channelId: Id<"channels"> }) {
     return authorId === currentUserId;
   };
 
+  // ✅ Reply handling functions
+  const handleReplySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (text.trim() && replyTo) {
+      try {
+        console.log("Sending reply:", text, "to message:", replyTo);
+        await send(text, replyTo); // Send with parentId
+        setText("");
+        setReplyTo(null);
+        // Auto-open the thread to show the new reply
+        setOpenThreads(prev => new Set(prev).add(replyTo));
+      } catch (error) {
+        console.error("Failed to send reply:", error);
+        alert("Failed to send reply. Please try again.");
+      }
+    }
+  };
+
+  const handleCancelReply = () => {
+    setReplyTo(null);
+    setText("");
+  };
+
   // Get top-level messages (not replies)
   const topLevelMessages = messages?.filter(m => !m.parentId) || [];
 
@@ -147,7 +170,10 @@ export function ChannelView({ channelId }: { channelId: Id<"channels"> }) {
           {showActions && !isEditing && (
             <div className="flex items-center space-x-4 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
-                onClick={() => setReplyTo(message._id)}
+                onClick={() => {
+                  console.log("Reply button clicked for message:", message._id);
+                  setReplyTo(message._id);
+                }}
                 className="text-xs text-blue-600 hover:underline"
               >
                 💬 Reply
@@ -191,101 +217,154 @@ export function ChannelView({ channelId }: { channelId: Id<"channels"> }) {
     );
   }
 
-  // Update the return statement in your ChannelView.tsx
-return (
-  <div className="flex flex-col h-full"> {/* Full height container */}
-    {/* Header - Fixed at top */}
-    <div className="border-b border-gray-200 p-4 flex-shrink-0 bg-white">
-      <h2 className="text-lg font-semibold">Channel Messages</h2>
-      <div className="text-xs text-gray-500 mt-1 space-y-1">
-        <p>Signed in as: {currentUser?.name || currentUser?.email || 'Loading...'}</p>
-        <p>Total messages: {messages?.length || 0}</p>
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header - Fixed at top */}
+      <div className="border-b border-gray-200 p-4 flex-shrink-0 bg-white">
+        <h2 className="text-lg font-semibold">Channel Messages</h2>
+        <div className="text-xs text-gray-500 mt-1 space-y-1">
+          <p>Signed in as: {currentUser?.name || currentUser?.email || 'Loading...'}</p>
+          <p>Total messages: {messages?.length || 0}</p>
+          {replyTo && <p className="text-blue-600">✍️ Replying to a message...</p>}
+        </div>
       </div>
-    </div>
 
-    {/* Messages Area - Scrollable */}
-    <div className="flex-1 overflow-y-auto bg-white"> {/* This will scroll */}
-      <div className="p-4 space-y-4"> {/* Padding inside scrollable area */}
-        {messages?.length === 0 && (
-          <div className="text-center text-gray-500 py-8">
-            No messages in this channel yet. Send the first message!
-          </div>
-        )}
-        
-        {topLevelMessages.map((message) => {
-          if (message.deleted) {
+      {/* Messages Area - Scrollable */}
+      <div className="flex-1 overflow-y-auto bg-white">
+        <div className="p-4 space-y-4">
+          {messages?.length === 0 && (
+            <div className="text-center text-gray-500 py-8">
+              No messages in this channel yet. Send the first message!
+            </div>
+          )}
+          
+          {topLevelMessages.map((message) => {
+            if (message.deleted) {
+              return (
+                <div key={message._id} className="text-gray-400 text-sm italic border-b border-gray-100 pb-4">
+                  🗑️ This message was deleted
+                </div>
+              );
+            }
+
+            const replies = messages?.filter(m => m.parentId === message._id) || [];
+            const replyCount = replies.length;
+            const isThreadOpen = openThreads.has(message._id);
+
             return (
-              <div key={message._id} className="text-gray-400 text-sm italic border-b border-gray-100 pb-4">
-                🗑️ This message was deleted
+              <div key={message._id} className="border-b border-gray-100 pb-4">
+                {/* Main Message */}
+                <MessageComponent message={message} />
+                
+                {/* Thread Controls */}
+                {replyCount > 0 && (
+                  <div className="ml-11 mt-2">
+                    <button
+                      onClick={() => {
+                        const newOpenThreads = new Set(openThreads);
+                        if (newOpenThreads.has(message._id)) {
+                          newOpenThreads.delete(message._id);
+                        } else {
+                          newOpenThreads.add(message._id);
+                        }
+                        setOpenThreads(newOpenThreads);
+                      }}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      {isThreadOpen ? '📁' : '📂'} {replyCount} {replyCount === 1 ? 'reply' : 'replies'}
+                    </button>
+                  </div>
+                )}
+
+                {/* ✅ Thread Replies Section */}
+                {isThreadOpen && replies.length > 0 && (
+                  <div className="ml-11 mt-3 border-l-2 border-blue-200 pl-4 space-y-2">
+                    <h4 className="text-sm font-medium text-gray-600">Thread</h4>
+                    {replies.map((reply) => (
+                      <div key={reply._id}>
+                        {reply.deleted ? (
+                          <div className="text-gray-400 text-xs italic">
+                            🗑️ This reply was deleted
+                          </div>
+                        ) : (
+                          <MessageComponent message={reply} isReply={true} />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* ✅ Reply Input - Show for the specific message being replied to */}
+                {replyTo === message._id && (
+                  <div className="ml-11 mt-3 border-l-2 border-green-200 pl-4 bg-green-50 rounded-r-lg p-3">
+                    <p className="text-sm text-gray-600 mb-2">
+                      Replying to <strong>{getAuthorName(message.authorId)}</strong>: 
+                      <span className="italic ml-1">
+                        "{message.text.slice(0, 50)}{message.text.length > 50 ? '...' : ''}"
+                      </span>
+                    </p>
+                    <form onSubmit={handleReplySubmit} className="space-y-2">
+                      <input
+                        className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={text}
+                        onChange={(e) => setText(e.target.value)}
+                        placeholder="Type your reply..."
+                        autoFocus
+                      />
+                      <div className="flex space-x-2">
+                        <button
+                          type="submit"
+                          disabled={!text.trim()}
+                          className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Send Reply
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCancelReply}
+                          className="px-3 py-1 bg-gray-300 text-gray-700 text-sm rounded hover:bg-gray-400"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
               </div>
             );
-          }
-
-          const replies = messages?.filter(m => m.parentId === message._id) || [];
-          const replyCount = replies.length;
-          const isThreadOpen = openThreads.has(message._id);
-
-          return (
-            <div key={message._id} className="border-b border-gray-100 pb-4">
-              {/* Your existing message component JSX */}
-              <MessageComponent message={message} />
-              
-              {/* Thread Controls and Replies - same as before */}
-              {replyCount > 0 && (
-                <div className="ml-11 mt-2">
-                  <button
-                    onClick={() => {
-                      const newOpenThreads = new Set(openThreads);
-                      if (newOpenThreads.has(message._id)) {
-                        newOpenThreads.delete(message._id);
-                      } else {
-                        newOpenThreads.add(message._id);
-                      }
-                      setOpenThreads(newOpenThreads);
-                    }}
-                    className="text-xs text-blue-600 hover:underline"
-                  >
-                    {isThreadOpen ? '📁' : '📂'} {replyCount} {replyCount === 1 ? 'reply' : 'replies'}
-                  </button>
-                </div>
-              )}
-
-              {/* Rest of your existing thread and reply JSX */}
-              {/* ... */}
-            </div>
-          );
-        })}
+          })}
+        </div>
       </div>
-    </div>
 
-    {/* Input Area - Fixed at bottom */}
-    {!replyTo && (
-      <div className="border-t border-gray-200 p-4 flex-shrink-0 bg-white">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (text.trim()) {
-              send(text);
-              setText("");
-            }
-          }}
-          className="flex gap-2"
-        >
-          <input
-            className="flex-grow border rounded px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Type your message…"
-          />
-          <button 
-            type="submit"
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+      {/* ✅ Main Input Area - Only show when not replying */}
+      {!replyTo && (
+        <div className="border-t border-gray-200 p-4 flex-shrink-0 bg-white">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (text.trim()) {
+                send(text); // Send without parentId for top-level messages
+                setText("");
+              }
+            }}
+            className="flex gap-2"
           >
-            Send
-          </button>
-        </form>
-      </div>
-    )}
-  </div>
-);
+            <input
+              className="flex-grow border rounded px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Type your message…"
+            />
+            <button 
+              type="submit"
+              disabled={!text.trim()}
+              className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              Send
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
 }
